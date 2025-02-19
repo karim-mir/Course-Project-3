@@ -1,8 +1,8 @@
 import sys
-from functools import wraps
 from typing import Callable, Dict, Tuple
-from database import DBManager
+
 from api import employer_ids, get_employer_data
+from database import DBManager
 
 COMMANDS: Dict[str, Tuple[str, Callable]] = {}
 
@@ -10,51 +10,32 @@ COMMANDS: Dict[str, Tuple[str, Callable]] = {}
 def register_as_command(number: str, description: str):
     def decorator(func):
         COMMANDS[number] = (description, func)
-
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            func(*args, **kwargs)
-
-        return wrapper
+        return func
 
     return decorator
 
 
-@register_as_command('1', 'Создать базу данных и таблицы')
+@register_as_command("1", "Создать базу данных и таблицы")
 def create_database_command(db_manager: DBManager) -> None:
     db_manager.create_database_if_not_exists()  # Создание базы данных, если она не существует
-
-    # Создание таблиц
-    db_manager.cursor.execute('''
-        CREATE TABLE IF NOT EXISTS organizations (
-            id SERIAL PRIMARY KEY,
-            name TEXT NOT NULL
-        );
-    ''')
-    db_manager.cursor.execute('''
-        CREATE TABLE IF NOT EXISTS vacancies (
-            id SERIAL PRIMARY KEY,
-            title TEXT NOT NULL,
-            organization_id INTEGER,
-            FOREIGN KEY (organization_id) REFERENCES organizations (id)
-        );
-    ''')
-    db_manager.connection.commit()
-    print("База данных и таблицы созданы.")
+    db_manager.create_tables()  # Метод для создания таблиц должен быть реализован
 
 
-@register_as_command('2', 'Заполнить таблицу организаций')
+@register_as_command("2", "Заполнить таблицу организаций")
 def fill_organizations_command(db_manager: DBManager) -> None:
     for employer_id in employer_ids:
         employer_data, _ = get_employer_data(employer_id)
         if employer_data:
             try:
-                db_manager.cursor.execute('''
-                    INSERT INTO organizations (id, name) VALUES (%s, %s) ON CONFLICT (id) DO NOTHING;
-                ''', (employer_data['id'], employer_data['name']))
-                db_manager.connection.commit()
+                db_manager.cursor.execute(
+                    """
+                    INSERT INTO companies (id, name, vacancies_count) VALUES (%s, %s, 0) ON CONFLICT (id) DO NOTHING;
+                """,
+                    (employer_data["id"], employer_data["name"]),
+                )
             except Exception as e:
                 print(f"Ошибка при добавлении организации {employer_data['name']}: {e}")
+    db_manager.connection.commit()
     print("Таблица организаций заполнена.")
 
 
@@ -65,15 +46,24 @@ def fill_vacancies_command(db_manager: DBManager) -> None:
         if vacancy_data:
             for vacancy in vacancy_data['items']:
                 try:
-                    db_manager.cursor.execute('''
-                        INSERT INTO vacancies (title, organization_id) VALUES (%s, %s) ON CONFLICT DO NOTHING;
-                    ''', (vacancy['name'], employer_id))
+                    # Проверяем наличие необходимых полей
+                    if 'name' in vacancy and 'url' in vacancy:
+                        db_manager.cursor.execute('''
+                            INSERT INTO vacancies (title, company_id, url) VALUES (%s, %s, %s) RETURNING id;
+                        ''', (vacancy['name'], employer_id, vacancy['url']))
+                        vacancy_id = db_manager.cursor.fetchone()[0]
+                        db_manager.cursor.execute('''
+                            UPDATE companies SET vacancies_count = vacancies_count + 1 WHERE id = %s;
+                        ''', (employer_id,))
+                    else:
+                        print(f"Недостаточно данных для вакансии: {vacancy}")
                 except Exception as e:
                     print(f"Ошибка при добавлении вакансии {vacancy['name']} для работодателя {employer_id}: {e}")
-                    db_manager.connection.commit()
-                    print("Таблица вакансий заполнена.")
+    db_manager.connection.commit()
+    print("Таблица вакансий заполнена.")
 
-@register_as_command('0', 'Выйти')
+
+@register_as_command("0", "Выйти")
 def exit_program(db_manager: DBManager) -> None:
     db_manager.close()
     print("До свидания")
