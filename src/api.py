@@ -1,5 +1,4 @@
 import logging
-
 import requests
 
 # Настройка логирования
@@ -7,20 +6,27 @@ logging.basicConfig(level=logging.INFO)
 
 # Список идентификаторов вакансий
 employer_ids = [
-    2870783,
-    117380646,
-    117371466,
-    117236141,
-    117217826,
-    117039142,
-    117112666,
-    116694017,
-    105334747,
-    115960991,
+    1375441,
+    1455,
+    11435141,
+    561525,
+    3892566,
+    5756945,
+    10745593,
+    3551949,
+    4905190,
+    3131901,
 ]
 
+def get_employer_data(employer_id: int) -> tuple[dict, dict]:
+    """
+    Получает данные о работодателе и его вакансиях по идентификатору работодателя.
 
-def get_employer_data(employer_id):
+    :param employer_id: Идентификатор работодателя.
+    :return: Кортеж, содержащий информацию о работодателе и список вакансий:
+             - employer_data (dict): Данные о работодателе или None, если не найден.
+             - vacancy_data (dict): Данные о вакансиях или None, если они не найдены.
+    """
     employer_url = f"https://api.hh.ru/employers/{employer_id}"
     vacancy_url = f"https://api.hh.ru/vacancies?employer_id={employer_id}"
 
@@ -52,8 +58,16 @@ def get_employer_data(employer_id):
 
     return employer_data, vacancy_data
 
+def main() -> None:
+    """
+    Главная функция для извлечения и отображения данных о работодателях и их вакансиях.
 
-def main():
+    Проходит по списку идентификаторов работодателей, получает данные о каждом
+    работодателе и выводит информацию о найденных вакансиях. Если данные не найдены,
+    выводится сообщение об ошибке.
+
+    :return: None
+    """
     for employer_id in employer_ids:
         employer_data, vacancy_data = get_employer_data(employer_id)
         if employer_data and vacancy_data:
