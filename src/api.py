@@ -1,4 +1,5 @@
 import logging
+
 import requests
 
 # Настройка логирования
@@ -17,6 +18,7 @@ employer_ids = [
     4905190,
     3131901,
 ]
+
 
 def get_employer_data(employer_id: int) -> tuple[dict, dict]:
     """
@@ -57,6 +59,7 @@ def get_employer_data(employer_id: int) -> tuple[dict, dict]:
         return employer_data, None
 
     return employer_data, vacancy_data
+
 
 def main() -> None:
     """

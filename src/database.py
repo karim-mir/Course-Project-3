@@ -1,7 +1,9 @@
 import configparser
 import os
+
 import psycopg2
 from psycopg2 import sql
+
 
 class DBManager:
     def __init__(self):
@@ -76,14 +78,18 @@ class DBManager:
                 self.connection.close()
 
             # Создаем новое соединение с сервером без указания базы данных
-            self.connection = psycopg2.connect(user=self.user, password=self.password, host=self.host, port=self.port)
+            self.connection = psycopg2.connect(
+                user=self.user, password=self.password, host=self.host, port=self.port
+            )
             self.cursor = self.connection.cursor()
 
             # Включаем автокоммит
             self.connection.autocommit = True
 
             # Выполняем команду создания базы данных
-            self.cursor.execute(sql.SQL("CREATE DATABASE {}").format(sql.Identifier(self.dbname)))
+            self.cursor.execute(
+                sql.SQL("CREATE DATABASE {}").format(sql.Identifier(self.dbname))
+            )
             print(f"База данных {self.dbname} успешно создана.")
         except psycopg2.errors.DuplicateDatabase:
             print(f"База данных {self.dbname} уже существует.")
@@ -97,16 +103,23 @@ class DBManager:
                 self.connection.close()
 
             # Восстанавливаем соединение с новой базой данных
-            self.connection = psycopg2.connect(database=self.dbname, user=self.user, password=self.password,
-                                               host=self.host, port=self.port)
+            self.connection = psycopg2.connect(
+                database=self.dbname,
+                user=self.user,
+                password=self.password,
+                host=self.host,
+                port=self.port,
+            )
             self.cursor = self.connection.cursor()
 
     def create_database(self):
         """
         Создает базу данных с именем, указанным в атрибуте `self.dbname`.
 
-        Этот метод закрывает текущее соединение с базой данных, создает новое соединение к серверу PostgreSQL без указания базы данных,
-        и выполняет команду создания базы данных. Если база данных с таким именем уже существует, выводится соответствующее сообщение.
+        Этот метод закрывает текущее соединение с базой данных, создает новое соединение к серверу PostgreSQL
+        без указания базы данных,
+        и выполняет команду создания базы данных. Если база данных с таким именем уже существует, выводится
+        соответствующее сообщение.
 
         :raises psycopg2.errors.DuplicateDatabase: Если база данных с указанным именем уже существует.
         :raises Exception: Если возникает ошибка при создании базы данных.
