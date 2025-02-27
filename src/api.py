@@ -78,24 +78,23 @@ def main() -> None:
             logging.info("Вакансии:")
             for vacancy in vacancy_data["items"]:
                 salary = vacancy.get("salary")
-                currency = (
-                    salary.get("currency", "не указана") if salary else "не указана"
-                )
 
-                if salary:
-                    salary_from = salary.get("from", "не указана")
-                    salary_to = salary.get("to", "не указана")
+                if salary is not None:
+                    salary_from = salary.get("from")
+                    salary_to = salary.get("to")
+                    currency = salary.get("currency", "не указана")
+
+                    # Определяем, как выводить информацию о зарплате
+                    if salary_from is None and salary_to is not None:
+                        logging.info(f"- {vacancy['name']} (Зарплата: до {salary_to} {currency})")
+                    elif salary_to is None and salary_from is not None:
+                        logging.info(f"- {vacancy['name']} (Зарплата: от {salary_from} {currency})")
+                    elif salary_from is not None and salary_to is not None:
+                        logging.info(f"- {vacancy['name']} (Зарплата: от {salary_from} до {salary_to} {currency})")
+                    else:
+                        logging.info(f"- {vacancy['name']} (Зарплата: не указана)")
                 else:
-                    salary_from = salary_to = "не указана"
-
-                logging.info(
-                    f"- {vacancy['name']} (Зарплата: {salary_from} - {salary_to} {currency})"
-                )
-            logging.info("\n")
-        else:
-            logging.error(
-                f"Ошибка при получении данных о работодателе {employer_id}: данные отсутствуют или недоступны."
-            )
+                    logging.info(f"Вакансия '{vacancy['name']}' не имеет информации о зарплате.")
 
 
 if __name__ == "__main__":

@@ -183,7 +183,7 @@ class DBManager:
                 id SERIAL PRIMARY KEY,
                 company_id INTEGER REFERENCES companies(id),
                 title VARCHAR(255) NOT NULL,
-                salary INTEGER,
+                salary INTEGER NULL,  
                 url VARCHAR(255) NOT NULL
             );
             """
@@ -223,7 +223,7 @@ class DBManager:
 
         :param company_id: ID компании, к которой относится вакансия.
         :param title: Название вакансии.
-        :param salary: Зарплата, предлагаемая по вакансии.
+        :param salary: Зарплата, предлагаемая по вакансии. Может быть None.
         :param url: URL-адрес, по которому можно найти подробности о вакансии.
         """
         self.cursor.execute(
@@ -263,20 +263,24 @@ class DBManager:
             JOIN companies c ON v.company_id = c.id;
             """
         )
-        return self.cursor.fetchall()
+        vacancies = self.cursor.fetchall()
+        # Обработка None значений для зарплаты
+        return [(name, title, salary if salary is not None else "не указана", url) for name, title, salary, url in
+                vacancies]
 
     def get_avg_salary(self):
         """
         Вычисляет среднюю зарплату по всем вакансиям.
 
-        :return: Средняя зарплата (число).
+        :return: Средняя зарплата (число) или None, если зарплат нет.
         """
         self.cursor.execute(
             """
             SELECT AVG(salary) FROM vacancies;
             """
         )
-        return self.cursor.fetchone()[0]
+        avg_salary = self.cursor.fetchone()[0]
+        return avg_salary if avg_salary is not None else 0  # Возвращаем 0, если зарплат нет
 
     def get_vacancies_with_higher_salary(self):
         """
@@ -285,6 +289,9 @@ class DBManager:
         :return: Список кортежей, где каждый кортеж содержит имя компании, название вакансии, зарплату и URL.
         """
         avg_salary = self.get_avg_salary()
+        if avg_salary == 0:  # Если нет зарплат, возвращаем пустой список
+            return []
+
         self.cursor.execute(
             """
             SELECT c.name, v.title, v.salary, v.url
@@ -294,7 +301,10 @@ class DBManager:
             """,
             (avg_salary,),
         )
-        return self.cursor.fetchall()
+        vacancies = self.cursor.fetchall()
+        # Обработка None значений для зарплаты
+        return [(name, title, salary if salary is not None else "не указана", url) for name, title, salary, url in
+                vacancies]
 
     def get_vacancies_with_keyword(self, keyword):
         """
